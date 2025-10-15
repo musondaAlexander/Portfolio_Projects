@@ -4,18 +4,26 @@
 
 This pipeline ingests synthetic user data from the Random User API and visualizes it in real-time using Grafana. Perfect for testing Kestra ETL capabilities with continuous data streams.
 
+
 ## 📋 Prerequisites
 
-- Docker Compose running with Kestra, PostgreSQL, and Grafana
+- Docker Compose setup (see `docker-compose.yml`) with Kestra, PostgreSQL, and Grafana
 - Kestra accessible at http://localhost:8090
 - Grafana accessible at http://localhost:3000
 - Analytics PostgreSQL database (analytics-postgres)
 
 ## 🚀 Quick Start
 
+
 ### Option 1: Automated Setup (Recommended)
 
-Run the quick start script from the `realtime_users_pipeline` directory:
+Start all services using Docker Compose:
+
+```powershell
+docker-compose up -d
+```
+
+Then run the quick start script from the `realtime_users_pipeline` directory:
 
 ```powershell
 .\quick-start.ps1
@@ -54,6 +62,7 @@ In Kestra:
 3. Set `batch_size` to `10` (or leave default)
 4. Click **Execute**
 
+
 ## 📊 What to Expect
 
 ### Workflow Behavior
@@ -62,6 +71,10 @@ In Kestra:
 - **Batch Size**: 10 users per execution (configurable)
 - **API Source**: Random User API (https://randomuser.me/api/)
 - **Data Storage**: PostgreSQL table `public.incoming_users`
+
+### Data Streaming (Recommended for Production)
+
+For true real-time streaming, we recommend integrating Apache Kafka. See [STREAMING_ENHANCEMENTS.md](../STREAMING_ENHANCEMENTS.md) and [WHY_KAFKA.md](../WHY_KAFKA.md) for details.
 
 ### Dashboard Features
 
@@ -218,12 +231,14 @@ For high-volume scenarios (>1M records):
 - Consider using Kestra secrets management for production
 - Dashboard accessible to all Grafana users
 
+
 ## 📚 Additional Resources
 
 - [Kestra Documentation](https://kestra.io/docs)
 - [Random User API Docs](https://randomuser.me/documentation)
 - [Grafana Panel Documentation](https://grafana.com/docs/grafana/latest/panels/)
 - [PostgreSQL Performance Tips](https://www.postgresql.org/docs/current/performance-tips.html)
+- [Why Kafka?](../WHY_KAFKA.md)
 
 ## 🎓 Learning Exercises
 

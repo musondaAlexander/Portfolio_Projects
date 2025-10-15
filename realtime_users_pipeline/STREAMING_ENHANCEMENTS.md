@@ -67,7 +67,8 @@ triggers:
 
 ---
 
-### Option 2: Apache Kafka Streaming ⭐⭐ PRODUCTION-GRADE
+
+### Option 2: Apache Kafka Streaming ⭐⭐ PRODUCTION-GRADE (**Recommended**)
 
 **Best for**: Production, scalability, high-throughput
 
@@ -333,12 +334,14 @@ triggers:
         flowId: kafka_streaming_users
 ```
 
+
 **Pros:**
 - ✅ True continuous streaming
 - ✅ Decoupled producer/consumer
 - ✅ Fault-tolerant (Kafka durability)
 - ✅ Scalable (multiple consumers)
 - ✅ Industry-standard solution
+- ✅ Most valuable for portfolio and interviews
 
 **Cons:**
 - ❌ Complex setup (3 new services)
@@ -349,178 +352,24 @@ triggers:
 **Expected Throughput:**
 - 1 user per second = 3,600 users/hour = 86,400 users/day
 
+**See [WHY_KAFKA.md](WHY_KAFKA.md) for why Kafka is recommended for production and portfolio use.**
+
 ---
 
-### Option 3: WebSocket Streaming ⭐⭐⭐ MOST REALISTIC
 
-**Best for**: True real-time dashboards, IoT, live events
+### Option 3: WebSocket Streaming (Not Implemented)
 
-**Architecture**:
-```
-Data Source → WebSocket Server → WebSocket Clients → Database
-                                      ↓
-                                   Grafana
-```
+**Note:** WebSocket streaming was considered but not implemented. For production and portfolio purposes, Apache Kafka is the recommended solution.
 
-**Implementation**:
+**Why Kafka instead of WebSockets?**
 
-#### Create WebSocket Server
+- **Industry Standard**: Kafka is what companies use in production
+- **Durability**: Messages are persisted, can be replayed
+- **Scalability**: Horizontal scaling with partitions and consumer groups
+- **Portfolio Value**: Much more impressive to employers
+- **Career Growth**: Kafka skills are in high demand
 
-`streaming_server/websocket_server.py`:
-```python
-import asyncio
-import websockets
-import json
-import aiohttp
-from datetime import datetime
-
-connected_clients = set()
-
-async def fetch_user():
-    """Fetch user from Random User API"""
-    async with aiohttp.ClientSession() as session:
-        async with session.get(
-            'https://randomuser.me/api/?results=1&inc=gender,name,email,login,dob,registered,phone,cell,picture,location,nat'
-        ) as response:
-            data = await response.json()
-            return data['results'][0]
-
-async def stream_users():
-    """Continuously stream users to all connected clients"""
-    while True:
-        try:
-            user = await fetch_user()
-            user['timestamp'] = datetime.now().isoformat()
-            
-            # Broadcast to all connected clients
-            if connected_clients:
-                message = json.dumps(user)
-                await asyncio.gather(
-                    *[client.send(message) for client in connected_clients],
-                    return_exceptions=True
-                )
-                print(f"📡 Broadcast user: {user['name']['first']} {user['name']['last']}")
-            
-            # Rate limiting: 1 user per second
-            await asyncio.sleep(1)
-            
-        except Exception as e:
-            print(f"❌ Error: {e}")
-            await asyncio.sleep(5)
-
-async def handler(websocket, path):
-    """Handle WebSocket connections"""
-    connected_clients.add(websocket)
-    print(f"✅ Client connected. Total: {len(connected_clients)}")
-    
-    try:
-        await websocket.wait_closed()
-    finally:
-        connected_clients.remove(websocket)
-        print(f"❌ Client disconnected. Total: {len(connected_clients)}")
-
-async def main():
-    # Start streaming task
-    asyncio.create_task(stream_users())
-    
-    # Start WebSocket server
-    async with websockets.serve(handler, "0.0.0.0", 8765):
-        print("🚀 WebSocket server started on ws://localhost:8765")
-        await asyncio.Future()  # Run forever
-
-if __name__ == "__main__":
-    asyncio.run(main())
-```
-
-#### Create WebSocket Client (Consumer)
-
-`streaming_server/websocket_client.py`:
-```python
-import asyncio
-import websockets
-import json
-from sqlalchemy import create_engine, text
-
-engine = create_engine('postgresql://analytics_user:analytics_pass@localhost:5433/analytics')
-
-async def consume_stream():
-    """Connect to WebSocket and consume user stream"""
-    uri = "ws://localhost:8765"
-    
-    async with websockets.connect(uri) as websocket:
-        print("🎧 Connected to user stream...")
-        
-        async for message in websocket:
-            user = json.loads(message)
-            
-            # Transform and insert
-            user_record = {
-                'user_id': user['login']['uuid'],
-                'gender': user['gender'],
-                'title': user['name']['title'],
-                'first_name': user['name']['first'],
-                'last_name': user['name']['last'],
-                'email': user['email'],
-                'username': user['login']['username'],
-                'date_of_birth': user['dob']['date'],
-                'age': user['dob']['age'],
-                'phone': user['phone'],
-                'cell': user['cell'],
-                'street_number': str(user['location']['street']['number']),
-                'street_name': user['location']['street']['name'],
-                'city': user['location']['city'],
-                'state': user['location']['state'],
-                'country': user['location']['country'],
-                'postcode': str(user['location']['postcode']),
-                'latitude': str(user['location']['coordinates']['latitude']),
-                'longitude': str(user['location']['coordinates']['longitude']),
-                'timezone_offset': user['location']['timezone']['offset'],
-                'timezone_description': user['location']['timezone']['description'],
-                'nationality': user['nat'],
-                'picture_large': user['picture']['large'],
-                'picture_medium': user['picture']['medium'],
-                'picture_thumbnail': user['picture']['thumbnail'],
-                'registered_date': user['registered']['date'],
-                'registered_age': user['registered']['age']
-            }
-            
-            with engine.begin() as conn:
-                insert_sql = text("""
-                    INSERT INTO public.incoming_users (
-                        user_id, gender, title, first_name, last_name, email, username,
-                        date_of_birth, age, phone, cell, street_number, street_name,
-                        city, state, country, postcode, latitude, longitude,
-                        timezone_offset, timezone_description, nationality,
-                        picture_large, picture_medium, picture_thumbnail,
-                        registered_date, registered_age, synced_at
-                    ) VALUES (
-                        :user_id, :gender, :title, :first_name, :last_name, :email, :username,
-                        :date_of_birth, :age, :phone, :cell, :street_number, :street_name,
-                        :city, :state, :country, :postcode, :latitude, :longitude,
-                        :timezone_offset, :timezone_description, :nationality,
-                        :picture_large, :picture_medium, :picture_thumbnail,
-                        :registered_date, :registered_age, CURRENT_TIMESTAMP
-                    )
-                    ON CONFLICT (user_id) DO UPDATE SET synced_at = CURRENT_TIMESTAMP
-                """)
-                conn.execute(insert_sql, user_record)
-            
-            print(f"✅ Inserted: {user_record['first_name']} {user_record['last_name']}")
-
-if __name__ == "__main__":
-    asyncio.run(consume_stream())
-```
-
-**Pros:**
-- ✅ True real-time (sub-second latency)
-- ✅ Push-based (no polling)
-- ✅ Bidirectional communication
-- ✅ Multiple clients supported
-
-**Cons:**
-- ❌ Need to manage WebSocket server
-- ❌ Connection management complexity
-- ❌ No built-in persistence (unlike Kafka)
+See **[WHY_KAFKA.md](WHY_KAFKA.md)** for detailed comparison and rationale.
 
 ---
 
@@ -555,12 +404,6 @@ if __name__ == "__main__":
 - ✅ **Career-relevant** - Kafka is in high demand
 - ⚠️ **More complex** - But worth the learning investment
 
-**Quick Win (If Short on Time) - Option 3 (WebSocket)**:
-- ✅ Fast to implement (1 hour)
-- ✅ Demonstrates real-time streaming concepts
-- ⚠️ Not production-grade
-- ⚠️ Less impressive to technical interviewers
-
 **Minimal Change - Option 1 (Micro-batching)**:
 - ✅ 5-minute config change
 - ✅ Improves existing setup
@@ -582,13 +425,7 @@ if __name__ == "__main__":
 - ✅ You've worked with industry-standard tools
 - ✅ You're ready for senior-level responsibilities
 
-**WebSockets are great for:**
-- Real-time dashboards (like stock tickers)
-- Chat applications
-- Gaming
-- IoT sensors to UI
-
-**But Kafka is used for:**
+**Kafka is used for:**
 - Event-driven microservices (what most companies build)
 - Data pipelines (ETL/ELT at scale)
 - Stream processing (real-time analytics)
@@ -606,26 +443,14 @@ if __name__ == "__main__":
 # Update Grafana refresh to 1 second
 ```
 
-### Option 2: Kafka
+### Option 2: Kafka (Recommended)
 ```powershell
-# Start Kafka services
-docker-compose -f docker-compose.kafka.yml up -d
+# Start all services including Kafka
+docker-compose up -d
 
 # Deploy workflows to Kestra
 # Upload kafka_streaming_users.yml
 # Upload kafka_consumer_to_postgres.yml
-```
-
-### Option 3: WebSocket
-```powershell
-# Install dependencies
-pip install asyncio websockets aiohttp sqlalchemy psycopg2-binary
-
-# Start server
-python streaming_server/websocket_server.py
-
-# Start consumer (in another terminal)
-python streaming_server/websocket_client.py
 ```
 
 ---

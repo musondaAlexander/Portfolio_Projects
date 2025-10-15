@@ -325,40 +325,21 @@ See detailed troubleshooting guide: [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOO
 
 Indexes ensure fast queries even at 1M+ records.
 
-## � Data Streaming Support
+
+## ⚡ Data Streaming Support
 
 ### Current Setup: Batch Processing
 - **Mode**: Scheduled batch ingestion (every 1 minute)
 - **Latency**: 60-second intervals
 - **Architecture**: Pull-based (cron trigger)
 
-### ⚡ Upgrade to True Streaming
-This pipeline **can be enhanced for real-time streaming**! See **[STREAMING_ENHANCEMENTS.md](STREAMING_ENHANCEMENTS.md)** for:
+### Upgrade to True Streaming
+This pipeline can be enhanced for real-time streaming. See **[STREAMING_ENHANCEMENTS.md](STREAMING_ENHANCEMENTS.md)** and **[WHY_KAFKA.md](WHY_KAFKA.md)** for:
 
-- **Option 1: Micro-batching** (10-second intervals) - Quick config change
-- **Option 2: Kafka Streaming** - Production-grade event streaming
-- **Option 3: WebSocket Streaming** - True real-time (<1s latency) ⭐ **Ready to use!**
+- **Option 1: Micro-batching** (10-second intervals) – Quick config change
+- **Option 2: Kafka Streaming** – Production-grade event streaming (**recommended for portfolio and production use**)
 
-#### 🚀 Quick Start with WebSocket Streaming
-
-```powershell
-# Install dependencies
-cd streaming_server
-pip install -r requirements.txt
-
-# Start streaming server (Terminal 1)
-python websocket_server.py
-
-# Start consumer (Terminal 2)
-python websocket_client.py
-
-# View in Grafana (set refresh to 1 second)
-http://localhost:3000/d/realtime_users_001
-```
-
-**Result**: Continuous real-time data flow at 1 user/second (3,600/hour)
-
-See **[streaming_server/README.md](streaming_server/README.md)** for full documentation.
+**Note:** For real-time streaming, we recommend using Apache Kafka. See **[WHY_KAFKA.md](WHY_KAFKA.md)** for rationale.
 
 ---
 

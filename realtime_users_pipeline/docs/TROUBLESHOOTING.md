@@ -1,6 +1,9 @@
 # Troubleshooting Guide - Real-time User Pipeline
 
+
 ## 🚨 Common Issues and Solutions
+
+**Note:** All services should be started using Docker Compose (`docker-compose up -d`). For true real-time streaming, Kafka is recommended. See [STREAMING_ENHANCEMENTS.md](../STREAMING_ENHANCEMENTS.md) and [WHY_KAFKA.md](../WHY_KAFKA.md).
 
 ### Issue 1: No Data in Grafana Dashboard
 

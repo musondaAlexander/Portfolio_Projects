@@ -4,15 +4,25 @@
 
 This script automates the entire pipeline setup.
 
+
 ## Prerequisites
 
 Before running, ensure:
-- ✅ Docker containers are running (Kestra, PostgreSQL, Grafana)
+- ✅ Docker Compose is set up (see `docker-compose.yml`) and containers are running (Kestra, PostgreSQL, Grafana)
 - ✅ You're in the `realtime_users_pipeline` directory
 - ✅ Kestra is accessible at http://localhost:8090
 - ✅ Grafana is accessible at http://localhost:3000
 
+
 ## Usage
+
+Start all services using Docker Compose:
+
+```powershell
+docker-compose up -d
+```
+
+Then run the quick start script:
 
 ```powershell
 .\quick-start.ps1
@@ -196,6 +206,7 @@ docker exec -it analytics-postgres psql -U analytics_user -d analytics -c "SELEC
 # If count > 0, check Grafana data source connection
 ```
 
+
 ## Advanced Options
 
 ### Customize Batch Size
@@ -203,9 +214,9 @@ docker exec -it analytics-postgres psql -U analytics_user -d analytics -c "SELEC
 Edit `kestra/synthetic_users_realtime.yml`:
 ```yaml
 triggers:
-  - id: realtime_schedule
-    inputs:
-      batch_size: 20  # Change from 10 to 20
+   - id: realtime_schedule
+      inputs:
+         batch_size: 20  # Change from 10 to 20
 ```
 
 ### Change Ingestion Frequency
@@ -213,8 +224,8 @@ triggers:
 Edit `kestra/synthetic_users_realtime.yml`:
 ```yaml
 triggers:
-  - id: realtime_schedule
-    cron: "*/2 * * * *"  # Change to every 2 minutes
+   - id: realtime_schedule
+      cron: "*/2 * * * *"  # Change to every 2 minutes
 ```
 
 ### Adjust Dashboard Refresh
@@ -223,6 +234,10 @@ In Grafana:
 1. Open dashboard
 2. Click refresh dropdown (top-right)
 3. Select desired interval (5s, 10s, 30s, 1m)
+
+### Data Streaming (Recommended for Production)
+
+For true real-time streaming, we recommend integrating Apache Kafka. See [STREAMING_ENHANCEMENTS.md](../STREAMING_ENHANCEMENTS.md) and [WHY_KAFKA.md](../WHY_KAFKA.md) for details.
 
 ## Next Steps
 
