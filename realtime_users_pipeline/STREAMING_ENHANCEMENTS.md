@@ -526,15 +526,21 @@ if __name__ == "__main__":
 
 ## 📊 Comparison Table
 
-| Feature | Current (Batch) | Option 1 (Micro-batch) | Option 2 (Kafka) | Option 3 (WebSocket) |
+| Feature | Current (Batch) | Option 1 (Micro-batch) | Option 2 (Kafka) ⭐ | Option 3 (WebSocket) |
 |---------|----------------|----------------------|------------------|---------------------|
 | **Latency** | 60 seconds | 10 seconds | <1 second | <0.5 seconds |
 | **Complexity** | Low | Low | High | Medium |
 | **Setup Time** | ✅ Done | 5 minutes | 2-3 hours | 1 hour |
 | **New Services** | 0 | 0 | 3 (Kafka, Zookeeper, Connect) | 1 (WebSocket server) |
-| **Scalability** | Limited | Limited | Excellent | Good |
+| **Scalability** | Limited | Limited | **Excellent** ⭐ | Good |
+| **Industry Use** | Legacy | Legacy | **Production Standard** ⭐ | Niche use cases |
+| **Resume Value** | Low | Low | **High** ⭐ | Medium |
+| **Data Durability** | ❌ None | ❌ None | **✅ Persistent** ⭐ | ❌ None |
+| **Replay Capability** | ❌ No | ❌ No | **✅ Yes** ⭐ | ❌ No |
 | **Cost** | Low | Low | Medium-High | Low-Medium |
-| **Best For** | Testing | Near real-time | Production | Live dashboards |
+| **Best For** | Testing | Near real-time | **Production/Portfolio** ⭐ | Live dashboards |
+
+**⭐ = Kafka advantages that matter in production**
 
 ---
 
@@ -542,19 +548,51 @@ if __name__ == "__main__":
 
 ### For Your Current Setup:
 
-**Immediate (Today)**: 
-- ✅ **Implement Option 1** (Micro-batching every 10s)
-- Minimal changes, immediate improvement
+**⭐ BEST FOR PORTFOLIO - Implement Option 2 (Kafka)**: 
+- ✅ **Industry-standard technology** - What companies actually use
+- ✅ **Most impressive on resume** - Shows production-ready skills
+- ✅ **Scalable architecture** - Demonstrates understanding of distributed systems
+- ✅ **Career-relevant** - Kafka is in high demand
+- ⚠️ **More complex** - But worth the learning investment
 
-**Short-term (This Week)**:
-- ✅ **Implement Option 3** (WebSocket streaming)
-- Better for portfolio demonstration
-- Shows real streaming architecture knowledge
+**Quick Win (If Short on Time) - Option 3 (WebSocket)**:
+- ✅ Fast to implement (1 hour)
+- ✅ Demonstrates real-time streaming concepts
+- ⚠️ Not production-grade
+- ⚠️ Less impressive to technical interviewers
 
-**Long-term (Production)**:
-- ✅ **Implement Option 2** (Kafka streaming)
-- Industry-standard
-- Resume-worthy skill
+**Minimal Change - Option 1 (Micro-batching)**:
+- ✅ 5-minute config change
+- ✅ Improves existing setup
+- ❌ Still batch processing, not true streaming
+- ❌ Won't stand out in interviews
+
+---
+
+## 💼 Why Kafka Matters for Your Career
+
+**In technical interviews, you'll be asked:**
+- "How do you handle real-time data pipelines?"
+- "What's your experience with distributed streaming?"
+- "Tell me about a time you built a scalable system"
+
+**Having Kafka in your portfolio means:**
+- ✅ You can answer with production-relevant experience
+- ✅ You understand distributed systems concepts
+- ✅ You've worked with industry-standard tools
+- ✅ You're ready for senior-level responsibilities
+
+**WebSockets are great for:**
+- Real-time dashboards (like stock tickers)
+- Chat applications
+- Gaming
+- IoT sensors to UI
+
+**But Kafka is used for:**
+- Event-driven microservices (what most companies build)
+- Data pipelines (ETL/ELT at scale)
+- Stream processing (real-time analytics)
+- Log aggregation (monitoring systems)
 
 ---
 
