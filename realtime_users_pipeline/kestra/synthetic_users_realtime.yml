@@ -1,0 +1,181 @@
+id: synthetic_users_realtime
+namespace: demo
+
+description: Real-time synthetic user data pipeline using Random User API
+
+inputs:
+  - id: batch_size
+    type: INT
+    defaults: 10
+    description: Number of users to generate per batch
+
+tasks:
+  - id: init_users_table
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: jdbc:postgresql://analytics-postgres:5432/analytics
+    username: analytics_user
+    password: analytics_pass
+    sql: |
+      CREATE TABLE IF NOT EXISTS public.incoming_users (
+        user_id VARCHAR(100) PRIMARY KEY,
+        gender VARCHAR(20),
+        title VARCHAR(20),
+        first_name VARCHAR(100),
+        last_name VARCHAR(100),
+        email VARCHAR(255),
+        username VARCHAR(100),
+        date_of_birth TIMESTAMP,
+        age INT,
+        phone VARCHAR(50),
+        cell VARCHAR(50),
+        street_number VARCHAR(20),
+        street_name VARCHAR(255),
+        city VARCHAR(100),
+        state VARCHAR(100),
+        country VARCHAR(100),
+        postcode VARCHAR(20),
+        latitude VARCHAR(50),
+        longitude VARCHAR(50),
+        timezone_offset VARCHAR(20),
+        timezone_description VARCHAR(255),
+        nationality VARCHAR(10),
+        picture_large TEXT,
+        picture_medium TEXT,
+        picture_thumbnail TEXT,
+        registered_date TIMESTAMP,
+        registered_age INT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      
+      CREATE INDEX IF NOT EXISTS idx_incoming_users_created_at 
+      ON public.incoming_users(created_at DESC);
+      
+      CREATE INDEX IF NOT EXISTS idx_incoming_users_country 
+      ON public.incoming_users(country);
+      
+      CREATE INDEX IF NOT EXISTS idx_incoming_users_gender 
+      ON public.incoming_users(gender);
+
+  - id: fetch_random_users
+    type: io.kestra.plugin.core.http.Request
+    uri: "https://randomuser.me/api/?results={{ inputs.batch_size }}&inc=gender,name,email,login,dob,registered,phone,cell,picture,location,nat"
+    method: GET
+
+  - id: process_and_load_users
+    type: io.kestra.plugin.scripts.python.Script
+    containerImage: python:3.11-slim
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+      networkMode: intelligence_center_demo_default
+    beforeCommands:
+      - pip install pandas psycopg2-binary sqlalchemy requests
+    script: |
+      import pandas as pd
+      import json
+      from sqlalchemy import create_engine, text
+      from datetime import datetime
+      import sys
+      
+      # Parse API response
+      api_response = '''{{ outputs.fetch_random_users.body }}'''
+      data = json.loads(api_response)
+      
+      print(f"📥 Received {len(data['results'])} users from API")
+      
+      # Transform data
+      users_list = []
+      for user in data['results']:
+          user_record = {
+              'user_id': user['login']['uuid'],
+              'gender': user['gender'],
+              'title': user['name']['title'],
+              'first_name': user['name']['first'],
+              'last_name': user['name']['last'],
+              'email': user['email'],
+              'username': user['login']['username'],
+              'date_of_birth': user['dob']['date'],
+              'age': user['dob']['age'],
+              'phone': user['phone'],
+              'cell': user['cell'],
+              'street_number': str(user['location']['street']['number']),
+              'street_name': user['location']['street']['name'],
+              'city': user['location']['city'],
+              'state': user['location']['state'],
+              'country': user['location']['country'],
+              'postcode': str(user['location']['postcode']),
+              'latitude': str(user['location']['coordinates']['latitude']),
+              'longitude': str(user['location']['coordinates']['longitude']),
+              'timezone_offset': user['location']['timezone']['offset'],
+              'timezone_description': user['location']['timezone']['description'],
+              'nationality': user['nat'],
+              'picture_large': user['picture']['large'],
+              'picture_medium': user['picture']['medium'],
+              'picture_thumbnail': user['picture']['thumbnail'],
+              'registered_date': user['registered']['date'],
+              'registered_age': user['registered']['age']
+          }
+          users_list.append(user_record)
+      
+      df = pd.DataFrame(users_list)
+      print(f"✅ Transformed {len(df)} user records")
+      
+      # Load to PostgreSQL
+      engine = create_engine('postgresql://analytics_user:analytics_pass@analytics-postgres:5432/analytics')
+      
+      # Use INSERT ... ON CONFLICT for upsert
+      with engine.begin() as conn:
+          for _, row in df.iterrows():
+              insert_sql = text("""
+                  INSERT INTO public.incoming_users (
+                      user_id, gender, title, first_name, last_name, email, username,
+                      date_of_birth, age, phone, cell, street_number, street_name,
+                      city, state, country, postcode, latitude, longitude,
+                      timezone_offset, timezone_description, nationality,
+                      picture_large, picture_medium, picture_thumbnail,
+                      registered_date, registered_age, synced_at
+                  ) VALUES (
+                      :user_id, :gender, :title, :first_name, :last_name, :email, :username,
+                      :date_of_birth, :age, :phone, :cell, :street_number, :street_name,
+                      :city, :state, :country, :postcode, :latitude, :longitude,
+                      :timezone_offset, :timezone_description, :nationality,
+                      :picture_large, :picture_medium, :picture_thumbnail,
+                      :registered_date, :registered_age, CURRENT_TIMESTAMP
+                  )
+                  ON CONFLICT (user_id) DO UPDATE SET
+                      synced_at = CURRENT_TIMESTAMP
+              """)
+              conn.execute(insert_sql, row.to_dict())
+      
+      print(f"💾 Successfully loaded {len(df)} users to database")
+      print(f"🎯 Pipeline complete!")
+
+  - id: get_stats
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: jdbc:postgresql://analytics-postgres:5432/analytics
+    username: analytics_user
+    password: analytics_pass
+    sql: |
+      SELECT 
+        COUNT(*) as total_users,
+        COUNT(DISTINCT country) as unique_countries,
+        COUNT(DISTINCT gender) as gender_count,
+        MAX(created_at) as latest_user_time
+      FROM public.incoming_users;
+    fetch: true
+
+triggers:
+  - id: realtime_schedule
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "*/1 * * * *"
+    inputs:
+      batch_size: 10
+
+  - id: manual_trigger
+    type: io.kestra.plugin.core.trigger.Flow
+    conditions:
+      - type: io.kestra.plugin.core.condition.ExecutionFlowCondition
+        namespace: demo
+        flowId: synthetic_users_realtime
+    inputs:
+      batch_size: 50
