@@ -24,7 +24,7 @@
     {
       "datasource": {
         "type": "tdengine-datasource",
-        "uid": "tdengine"
+        "uid": "PCDB1A4F820EAA3DF"
       },
       "fieldConfig": {
         "defaults": {
@@ -80,9 +80,9 @@
         {
           "datasource": {
             "type": "tdengine-datasource",
-            "uid": "tdengine"
+            "uid": "PCDB1A4F820EAA3DF"
           },
-          "query": "SELECT COUNT(*) FROM renewables.solarfarms WHERE ts >= NOW - 60s",
+          "sql": "SELECT COUNT(*) FROM renewables.solarfarms WHERE ts >= NOW - 60s",
           "refId": "A"
         }
       ],
@@ -92,7 +92,7 @@
     {
       "datasource": {
         "type": "tdengine-datasource",
-        "uid": "tdengine"
+        "uid": "PCDB1A4F820EAA3DF"
       },
       "fieldConfig": {
         "defaults": {
@@ -169,9 +169,9 @@
         {
           "datasource": {
             "type": "tdengine-datasource",
-            "uid": "tdengine"
+            "uid": "PCDB1A4F820EAA3DF"
           },
-          "query": "SELECT _wstart as ts, COUNT(*) as records FROM renewables.solarfarms WHERE ts >= NOW - 1h INTERVAL(1m) FILL(VALUE, 0)",
+          "sql": "SELECT ts, COUNT(*) as records FROM renewables.solarfarms WHERE ts >= NOW() - 1h GROUP BY ts ORDER BY ts",
           "refId": "A"
         }
       ],
@@ -181,7 +181,7 @@
     {
       "datasource": {
         "type": "tdengine-datasource",
-        "uid": "tdengine"
+        "uid": "PCDB1A4F820EAA3DF"
       },
       "fieldConfig": {
         "defaults": {
@@ -258,9 +258,9 @@
         {
           "datasource": {
             "type": "tdengine-datasource",
-            "uid": "tdengine"
+            "uid": "PCDB1A4F820EAA3DF"
           },
-          "query": "SELECT ts, LAST(write_latency_ms) as write_latency FROM renewables.consumer_metrics WHERE ts >= NOW - 1h GROUP BY tbname, ts",
+          "sql": "SELECT ts, LAST(write_latency_ms) as write_latency FROM renewables.consumer_metrics WHERE ts >= NOW - 1h GROUP BY tbname, ts",
           "refId": "A"
         }
       ],
@@ -270,7 +270,7 @@
     {
       "datasource": {
         "type": "tdengine-datasource",
-        "uid": "tdengine"
+        "uid": "PCDB1A4F820EAA3DF"
       },
       "fieldConfig": {
         "defaults": {
@@ -351,9 +351,9 @@
         {
           "datasource": {
             "type": "tdengine-datasource",
-            "uid": "tdengine"
+            "uid": "PCDB1A4F820EAA3DF"
           },
-          "query": "SELECT ts, LAST(kafka_lag) as lag FROM renewables.consumer_metrics WHERE ts >= NOW - 1h GROUP BY tbname, ts",
+          "sql": "SELECT ts, LAST(kafka_lag) as lag FROM renewables.consumer_metrics WHERE ts >= NOW - 1h GROUP BY tbname, ts",
           "refId": "A"
         }
       ],
@@ -363,7 +363,7 @@
     {
       "datasource": {
         "type": "tdengine-datasource",
-        "uid": "tdengine"
+        "uid": "PCDB1A4F820EAA3DF"
       },
       "fieldConfig": {
         "defaults": {
@@ -440,9 +440,9 @@
         {
           "datasource": {
             "type": "tdengine-datasource",
-            "uid": "tdengine"
+            "uid": "PCDB1A4F820EAA3DF"
           },
-          "query": "SELECT ts, LAST(messages_produced) as produced, LAST(messages_failed) as failed FROM renewables.producer_metrics WHERE ts >= NOW - 1h GROUP BY tbname, ts",
+          "sql": "SELECT ts, LAST(messages_produced) as produced, LAST(messages_failed) as failed FROM renewables.producer_metrics WHERE ts >= NOW - 1h GROUP BY tbname, ts",
           "refId": "A"
         }
       ],
@@ -452,7 +452,7 @@
     {
       "datasource": {
         "type": "tdengine-datasource",
-        "uid": "tdengine"
+        "uid": "PCDB1A4F820EAA3DF"
       },
       "fieldConfig": {
         "defaults": {
@@ -529,9 +529,9 @@
         {
           "datasource": {
             "type": "tdengine-datasource",
-            "uid": "tdengine"
+            "uid": "PCDB1A4F820EAA3DF"
           },
-          "query": "SELECT ts, LAST(messages_consumed) as consumed, LAST(messages_written) as written, LAST(messages_failed) as failed FROM renewables.consumer_metrics WHERE ts >= NOW - 1h GROUP BY tbname, ts",
+          "sql": "SELECT ts, LAST(messages_consumed) as consumed, LAST(messages_written) as written, LAST(messages_failed) as failed FROM renewables.consumer_metrics WHERE ts >= NOW - 1h GROUP BY tbname, ts",
           "refId": "A"
         }
       ],
@@ -541,7 +541,7 @@
     {
       "datasource": {
         "type": "tdengine-datasource",
-        "uid": "tdengine"
+        "uid": "PCDB1A4F820EAA3DF"
       },
       "fieldConfig": {
         "defaults": {
@@ -625,9 +625,9 @@
         {
           "datasource": {
             "type": "tdengine-datasource",
-            "uid": "tdengine"
+            "uid": "PCDB1A4F820EAA3DF"
           },
-          "query": "SELECT tbname as farm, LAST(messages_produced) as total_produced, LAST(messages_failed) as total_failed, LAST(latency_ms) as last_latency_ms, (NOW - LAST(ts)) / 1000 as seconds_ago FROM renewables.producer_metrics GROUP BY tbname",
+          "sql": "SELECT tbname as farm, messages_produced as total_produced, messages_failed as total_failed, latency_ms as last_latency_ms, ts FROM renewables.producer_metrics WHERE ts >= NOW() - 1h ORDER BY ts DESC",
           "refId": "A"
         }
       ],
@@ -652,3 +652,5 @@
   "version": 1,
   "weekStart": ""
 }
+
+

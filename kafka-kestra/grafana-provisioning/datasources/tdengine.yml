@@ -6,8 +6,10 @@ datasources:
     access: proxy
     url: http://tdengine:6041
     isDefault: true
+    basicAuth: false
     jsonData:
       user: root
     secureJsonData:
       password: taosdata
     editable: true
+    version: 1

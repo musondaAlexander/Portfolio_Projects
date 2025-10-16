@@ -11,7 +11,7 @@
     {
       "datasource": {
         "type": "tdengine-datasource",
-        "uid": "tdengine"
+        "uid": "PCDB1A4F820EAA3DF"
       },
       "fieldConfig": {
         "defaults": {
@@ -87,9 +87,9 @@
         {
           "datasource": {
             "type": "tdengine-datasource",
-            "uid": "tdengine"
+            "uid": "PCDB1A4F820EAA3DF"
           },
-          "query": "SELECT _wstart as ts, site, AVG(poweroutput_kw) as avg_power FROM renewables.solarfarms WHERE ts >= NOW - 1h GROUP BY site, _wstart INTERVAL(1m) FILL(VALUE, 0)",
+          "sql": "SELECT ts, site, poweroutput_kw FROM renewables.solarfarms WHERE ts >= NOW() - 1h ORDER BY ts",
           "refId": "A"
         }
       ],
@@ -99,7 +99,7 @@
     {
       "datasource": {
         "type": "tdengine-datasource",
-        "uid": "tdengine"
+        "uid": "PCDB1A4F820EAA3DF"
       },
       "fieldConfig": {
         "defaults": {
@@ -153,9 +153,9 @@
         {
           "datasource": {
             "type": "tdengine-datasource",
-            "uid": "tdengine"
+            "uid": "PCDB1A4F820EAA3DF"
           },
-          "query": "SELECT SUM(poweroutput_kw) as total_power FROM renewables.solarfarms WHERE ts >= NOW - 10s",
+          "sql": "SELECT SUM(poweroutput_kw) as total_power FROM renewables.solarfarms WHERE ts >= NOW - 10s",
           "refId": "A"
         }
       ],
@@ -165,7 +165,7 @@
     {
       "datasource": {
         "type": "tdengine-datasource",
-        "uid": "tdengine"
+        "uid": "PCDB1A4F820EAA3DF"
       },
       "fieldConfig": {
         "defaults": {
@@ -212,9 +212,9 @@
         {
           "datasource": {
             "type": "tdengine-datasource",
-            "uid": "tdengine"
+            "uid": "PCDB1A4F820EAA3DF"
           },
-          "query": "SELECT SUM(poweroutput_kw * 10 / 3600) as total_energy_kwh FROM renewables.solarfarms WHERE ts >= NOW - 1h",
+          "sql": "SELECT SUM(poweroutput_kw * 10 / 3600) as total_energy_kwh FROM renewables.solarfarms WHERE ts >= NOW - 1h",
           "refId": "A"
         }
       ],
@@ -224,7 +224,7 @@
     {
       "datasource": {
         "type": "tdengine-datasource",
-        "uid": "tdengine"
+        "uid": "PCDB1A4F820EAA3DF"
       },
       "fieldConfig": {
         "defaults": {
@@ -300,9 +300,9 @@
         {
           "datasource": {
             "type": "tdengine-datasource",
-            "uid": "tdengine"
+            "uid": "PCDB1A4F820EAA3DF"
           },
-          "query": "SELECT _wstart as ts, site, AVG(ambienttemperature_c) as avg_temp FROM renewables.solarfarms WHERE ts >= NOW - 1h GROUP BY site, _wstart INTERVAL(1m)",
+          "sql": "SELECT ts, site, ambienttemperature_c FROM renewables.solarfarms WHERE ts >= NOW() - 1h ORDER BY ts",
           "refId": "A"
         }
       ],
@@ -312,7 +312,7 @@
     {
       "datasource": {
         "type": "tdengine-datasource",
-        "uid": "tdengine"
+        "uid": "PCDB1A4F820EAA3DF"
       },
       "fieldConfig": {
         "defaults": {
@@ -388,9 +388,9 @@
         {
           "datasource": {
             "type": "tdengine-datasource",
-            "uid": "tdengine"
+            "uid": "PCDB1A4F820EAA3DF"
           },
-          "query": "SELECT _wstart as ts, site, AVG(windspeed_mps) as avg_wind FROM renewables.solarfarms WHERE ts >= NOW - 1h GROUP BY site, _wstart INTERVAL(1m)",
+          "sql": "SELECT ts, site, windspeed_mps FROM renewables.solarfarms WHERE ts >= NOW() - 1h ORDER BY ts",
           "refId": "A"
         }
       ],
@@ -400,7 +400,7 @@
     {
       "datasource": {
         "type": "tdengine-datasource",
-        "uid": "tdengine"
+        "uid": "PCDB1A4F820EAA3DF"
       },
       "fieldConfig": {
         "defaults": {
@@ -490,9 +490,9 @@
         {
           "datasource": {
             "type": "tdengine-datasource",
-            "uid": "tdengine"
+            "uid": "PCDB1A4F820EAA3DF"
           },
-          "query": "SELECT site, COUNT(*) as panel_count, AVG(poweroutput_kw) as avg_power, AVG(ambienttemperature_c) as avg_temp, AVG(windspeed_mps) as avg_wind, SUM(poweroutput_kw * 10 / 3600) as energy_kwh FROM renewables.solarfarms WHERE ts >= NOW - 1h GROUP BY site",
+          "sql": "SELECT site, COUNT(*) as panel_count, AVG(poweroutput_kw) as avg_power, AVG(ambienttemperature_c) as avg_temp, AVG(windspeed_mps) as avg_wind, SUM(poweroutput_kw * 10 / 3600) as energy_kwh FROM renewables.solarfarms WHERE ts >= NOW - 1h GROUP BY site",
           "refId": "A"
         }
       ],
@@ -517,3 +517,5 @@
   "version": 1,
   "weekStart": ""
 }
+
+

@@ -8,8 +8,8 @@ A real-time data pipeline for monitoring solar farms using Apache Kafka and TDen
 ✅ **TDengine Storage** - Data being stored successfully (~7,000+ records)  
 ✅ **Kafka UI** - Web interface for monitoring topics and consumers  
 ✅ **Real-time Ingestion** - <50ms latency from Kafka to TDengine  
-
-⚠️ **In Progress**: Grafana dashboards, Kestra workflows
+✅ **Kestra Orchestration** - Workflow engine configured and running  
+✅ **Grafana Dashboards** - Auto-provisioned with TDengine data source
 
 ---
 
@@ -65,6 +65,8 @@ All containers should show "Up" status.
 
 | Service | URL | Credentials |
 |---------|-----|-------------|
+| **Kestra** | http://localhost:8090 | admin@solar.com / Admin1234 |
+| **Grafana** | http://localhost:3000 | admin / admin123 |
 | **Kafka UI** | http://localhost:8081 | No auth |
 | **TDengine** | `docker exec -it tdengine taos` | root/taosdata |
 
@@ -273,8 +275,15 @@ kafka-kestra/
 | Consumer | ✅ Working | Real-time writes |
 | TDengine | ✅ Working | 7,000+ records |
 | Kafka UI | ✅ Working | Monitoring interface |
-| Grafana | ⚠️ WIP | Dashboards need configuration |
-| Kestra | ⚠️ WIP | Workflows need setup |
+| Kestra | ✅ Working | Orchestration ready |
+| Grafana | ✅ Working | Dashboards auto-provisioned |
+
+---
+
+## 📚 Documentation
+
+- **[KESTRA_GRAFANA_SETUP.md](KESTRA_GRAFANA_SETUP.md)** - Complete setup guide for Kestra & Grafana
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture details
 
 ---
 

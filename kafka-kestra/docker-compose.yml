@@ -75,6 +75,7 @@ services:
   postgres:
     image: postgres:14
     container_name: kestra-postgres
+    restart: always
     environment:
       POSTGRES_DB: kestra
       POSTGRES_USER: kestra
@@ -83,13 +84,22 @@ services:
       - postgres-data:/var/lib/postgresql/data
     networks:
       - solar-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
 
   kestra:
     image: kestra/kestra:latest
     container_name: kestra
+    restart: always
+    pull_policy: always
+    user: "root"
     command: server standalone
     ports:
-      - "8080:8080"
+      - "8090:8080"
+      - "8082:8081"
     environment:
       KESTRA_CONFIGURATION: |
         datasources:
@@ -100,23 +110,35 @@ services:
             password: k3str4
         kestra:
           server:
-            basic-auth:
-              enabled: false
+            basicAuth:
+              username: admin@solar.com
+              password: Admin1234
           repository:
-            type: postgres
-          queue:
             type: postgres
           storage:
             type: local
             local:
-              base-path: "/app/storage"
+              basePath: "/app/storage"
+          queue:
+            type: postgres
+          tasks:
+            tmpDir:
+              path: /tmp/kestra-wd/tmp
+          url: http://localhost:8090/
     volumes:
       - kestra-data:/app/storage
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp/kestra-wd:/tmp/kestra-wd
       - ./kestra-flows:/app/flows
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
-      - postgres
-      - kafka
-      - tdengine
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      tdengine:
+        condition: service_healthy
     networks:
       - solar-network
 
@@ -207,15 +229,18 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
+    restart: always
     ports:
       - "3000:3000"
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: "admin123"
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
       GF_INSTALL_PLUGINS: "https://github.com/taosdata/grafanaplugin/releases/download/v3.7.2/tdengine-datasource-3.7.2.zip;tdengine-datasource"
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./grafana-provisioning/dashboards:/etc/grafana/provisioning/dashboards
       - ./grafana-provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana-provisioning/dashboards:/etc/grafana/provisioning/dashboards
       - ./grafana-dashboards:/var/lib/grafana/dashboards
     depends_on:
       - tdengine
