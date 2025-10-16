@@ -1,0 +1,16 @@
+{
+  "name": "kafka-tdengine-consumer",
+  "version": "1.0.0",
+  "description": "Kafka to TDengine consumer with monitoring",
+  "main": "consumer.js",
+  "scripts": {
+    "start": "node consumer.js"
+  },
+  "dependencies": {
+    "kafkajs": "^2.2.4",
+    "@tdengine/websocket": "^3.1.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.12.0"
+  }
+}

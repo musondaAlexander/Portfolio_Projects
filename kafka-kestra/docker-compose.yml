@@ -1,0 +1,252 @@
+services:
+  # ===================
+  # Core Infrastructure
+  # ===================
+  
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-logs:/var/lib/zookeeper/log
+    networks:
+      - solar-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "9101:9101"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_JMX_PORT: 9101
+      KAFKA_JMX_HOSTNAME: localhost
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    networks:
+      - solar-network
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  tdengine:
+    image: tdengine/tdengine:latest
+    container_name: tdengine
+    hostname: tdengine
+    ports:
+      - "6030:6030"
+      - "6041:6041"
+      - "6043-6049:6043-6049"
+      - "6060:6060"
+    volumes:
+      - tdengine-data:/var/lib/taos
+      - tdengine-log:/var/log/taos
+    environment:
+      TAOS_FQDN: tdengine
+    networks:
+      - solar-network
+    healthcheck:
+      test: ["CMD-SHELL", "taos -s 'show databases;'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===================
+  # Kestra Orchestration
+  # ===================
+  
+  postgres:
+    image: postgres:14
+    container_name: kestra-postgres
+    environment:
+      POSTGRES_DB: kestra
+      POSTGRES_USER: kestra
+      POSTGRES_PASSWORD: k3str4
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - solar-network
+
+  kestra:
+    image: kestra/kestra:latest
+    container_name: kestra
+    command: server standalone
+    ports:
+      - "8080:8080"
+    environment:
+      KESTRA_CONFIGURATION: |
+        datasources:
+          postgres:
+            url: jdbc:postgresql://postgres:5432/kestra
+            driverClassName: org.postgresql.Driver
+            username: kestra
+            password: k3str4
+        kestra:
+          server:
+            basic-auth:
+              enabled: false
+          repository:
+            type: postgres
+          queue:
+            type: postgres
+          storage:
+            type: local
+            local:
+              base-path: "/app/storage"
+    volumes:
+      - kestra-data:/app/storage
+      - ./kestra-flows:/app/flows
+    depends_on:
+      - postgres
+      - kafka
+      - tdengine
+    networks:
+      - solar-network
+
+  # ===================
+  # Solar Farm Producers
+  # ===================
+  
+  solarfarm-a-producer:
+    build:
+      context: ./solarfarm-kafka-producer
+      dockerfile: Dockerfile
+    container_name: solarfarm-a-producer
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      FARM_ID: solarfarma
+      TDENGINE_HOST: tdengine
+    depends_on:
+      kafka:
+        condition: service_healthy
+      tdengine:
+        condition: service_healthy
+    networks:
+      - solar-network
+    restart: unless-stopped
+
+  solarfarm-b-producer:
+    build:
+      context: ./solarfarm-kafka-producer
+      dockerfile: Dockerfile
+    container_name: solarfarm-b-producer
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      FARM_ID: solarfarmb
+      TDENGINE_HOST: tdengine
+    depends_on:
+      kafka:
+        condition: service_healthy
+      tdengine:
+        condition: service_healthy
+    networks:
+      - solar-network
+    restart: unless-stopped
+
+  solarfarm-c-producer:
+    build:
+      context: ./solarfarm-kafka-producer
+      dockerfile: Dockerfile
+    container_name: solarfarm-c-producer
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      FARM_ID: solarfarmc
+      TDENGINE_HOST: tdengine
+    depends_on:
+      kafka:
+        condition: service_healthy
+      tdengine:
+        condition: service_healthy
+    networks:
+      - solar-network
+    restart: unless-stopped
+
+  # ===================
+  # Kafka to TDengine Consumer
+  # ===================
+  
+  kafka-tdengine-consumer:
+    build:
+      context: ./kafka-tdengine-consumer
+      dockerfile: Dockerfile
+    container_name: kafka-tdengine-consumer
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      TDENGINE_HOST: tdengine
+      CONSUMER_GROUP: tdengine-writers
+    depends_on:
+      kafka:
+        condition: service_healthy
+      tdengine:
+        condition: service_healthy
+    networks:
+      - solar-network
+    restart: unless-stopped
+
+  # ===================
+  # Monitoring & Visualization
+  # ===================
+  
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: "admin123"
+      GF_INSTALL_PLUGINS: "https://github.com/taosdata/grafanaplugin/releases/download/v3.7.2/tdengine-datasource-3.7.2.zip;tdengine-datasource"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana-provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana-provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana-dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - tdengine
+    networks:
+      - solar-network
+
+  # Kafka UI for monitoring
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8081:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: solar-kafka
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    depends_on:
+      - kafka
+    networks:
+      - solar-network
+
+volumes:
+  zookeeper-data:
+  zookeeper-logs:
+  kafka-data:
+  tdengine-data:
+  tdengine-log:
+  kestra-data:
+  postgres-data:
+  grafana-data:
+
+networks:
+  solar-network:
+    driver: bridge

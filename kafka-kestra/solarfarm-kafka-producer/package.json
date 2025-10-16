@@ -1,0 +1,21 @@
+{
+  "name": "solarfarm-kafka-producer",
+  "version": "1.0.0",
+  "description": "Solar farm data producer with Kafka and monitoring",
+  "main": "producer.js",
+  "scripts": {
+    "start": "node producer.js"
+  },
+  "dependencies": {
+    "kafkajs": "^2.2.4",
+    "@tdengine/websocket": "^3.1.4",
+    "mockjs": "^1.1.0",
+    "moment": "^2.30.1",
+    "moment-timezone": "^0.5.47",
+    "openmeteo": "^1.1.4"
+  },
+  "devDependencies": {
+    "@types/mockjs": "^1.0.10",
+    "@types/node": "^22.12.0"
+  }
+}

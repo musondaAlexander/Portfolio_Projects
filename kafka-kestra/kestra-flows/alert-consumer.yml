@@ -1,0 +1,91 @@
+id: alert-consumer
+namespace: solar.monitoring
+
+description: |
+  Consumes alerts from Kafka pipeline-alerts topic.
+  Processes and routes alerts based on severity.
+
+labels:
+  team: data-engineering
+  component: alerting
+
+tasks:
+  # ====================
+  # Step 1: Check for Alerts in Kafka
+  # ====================
+  - id: check-alerts
+    type: io.kestra.plugin.scripts.shell.Commands
+    runner: PROCESS
+    commands:
+      - |
+        docker exec kafka kafka-console-consumer \
+          --bootstrap-server kafka:9092 \
+          --topic pipeline-alerts \
+          --from-beginning \
+          --max-messages 100 \
+          --timeout-ms 10000 \
+          2>/dev/null || echo "No alerts"
+
+  # ====================
+  # Step 2: Process Alerts
+  # ====================
+  - id: process-alerts
+    type: io.kestra.plugin.scripts.node.Script
+    script: |
+      const alertsOutput = `{{ outputs['check-alerts'].stdout }}`;
+      
+      if (alertsOutput === "No alerts") {
+        console.log("✅ No alerts to process");
+        process.exit(0);
+      }
+      
+      const lines = alertsOutput.split('\n').filter(line => line.trim());
+      const alerts = [];
+      
+      for (const line of lines) {
+        try {
+          const alert = JSON.parse(line);
+          alerts.push(alert);
+          
+          console.log(`🚨 Alert: ${alert.component} - ${alert.severity}`);
+          console.log(`   Error: ${alert.error}`);
+          console.log(`   Time: ${alert.timestamp}`);
+        } catch (e) {
+          console.log(`Failed to parse: ${line}`);
+        }
+      }
+      
+      const criticalCount = alerts.filter(a => a.severity === 'CRITICAL').length;
+      const errorCount = alerts.filter(a => a.severity === 'ERROR').length;
+      
+      console.log(`\nSummary: ${criticalCount} CRITICAL, ${errorCount} ERROR alerts`);
+
+  # ====================
+  # Step 3: Send Notification if Alerts Exist
+  # ====================
+  - id: send-notification
+    type: io.kestra.core.tasks.flows.If
+    condition: "{{ outputs['check-alerts'].stdout != 'No alerts' }}"
+    then:
+      - id: notify-slack
+        type: io.kestra.plugin.scripts.shell.Commands
+        runner: PROCESS
+        commands:
+          - |
+            curl -X POST "{{ secret('SLACK_WEBHOOK') }}" \
+              -H 'Content-Type: application/json' \
+              -d '{
+                "text": "🚨 Pipeline Alerts Detected",
+                "blocks": [{
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Pipeline Alerts*\nCheck Kestra execution for details\nTime: {{ execution.startDate }}"
+                  }
+                }]
+              }'
+
+triggers:
+  - id: check-every-minute
+    type: io.kestra.core.models.triggers.types.Schedule
+    cron: "* * * * *"  # Every minute
